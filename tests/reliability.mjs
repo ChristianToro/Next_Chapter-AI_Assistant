@@ -1,5 +1,5 @@
 // Reliability test: 5 fixed inputs x 2 runs through the REAL pipeline
-// (OpenAI + live tarkov.dev). Writes TEST-RESULTS.md.
+// (Claude + live tarkov.dev). Writes TEST-RESULTS.md.
 // Run: node tests/reliability.mjs
 
 import { writeFileSync } from 'node:fs';
@@ -71,7 +71,7 @@ for (const c of CASES) {
 
 const md = `# Reliability Test Results
 
-Run: ${new Date().toISOString()} · model: ${process.env.OPENAI_MODEL || 'gpt-4.1-mini'} · ${RUNS} runs per input · temperature 0
+Run: ${new Date().toISOString()} · model: ${process.env.ANTHROPIC_MODEL || 'claude-sonnet-5'} · effort low · ${RUNS} runs per input
 
 | Input | Mode | Expected behavior | Runs | Consistency | Notes |
 |---|---|---|---|---|---|

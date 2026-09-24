@@ -10,5 +10,10 @@
     "test": "node --test tests/guard.test.mjs",
     "test:reliability": "node tests/reliability.mjs"
   },
-  "engines": { "node": ">=21.7" }
+  "engines": {
+    "node": ">=21.7"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0"
+  }
 }

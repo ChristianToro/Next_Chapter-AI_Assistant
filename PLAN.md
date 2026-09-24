@@ -1,5 +1,7 @@
 # Tarkov Price Terminal: a one-task AI assistant
 
+> **Update:** the LLM layer later moved from OpenAI to **Claude Sonnet 5** (`@anthropic-ai/sdk`, no temperature, effort low). OpenAI details below are historical; see PROMPT-HISTORY.md and CLAUDE.md for the current setup.
+
 ## Context
 Weekly project: build a reusable AI assistant for **one** real task, with a system prompt, few-shot examples, a fixed output structure, a responsible-use note, a reliability test (3+ inputs), a named failure mode with a mitigation, a one-page spec sheet, and Prompt Log entries.
 **The task:** a user types an Escape From Tarkov item name (loose phrasing is fine, e.g. "how much is a LEDX", "gpu pve") and gets its current market value back. The UI is a lightweight browser page styled like a terminal.

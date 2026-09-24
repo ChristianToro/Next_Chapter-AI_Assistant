@@ -14,7 +14,7 @@
 | Pre-formatted numbers | The server turns `412300` into `"₽ 412,300"` before the model sees it | The model only copies strings. It never rounds or does math, and that makes the output checkable. |
 | Few-shot (2) | Clean match with a mode override, and an ambiguous name with a MATCHES list | Example 1 shows both steps (call the tool, then fill the format). Example 2 shows the harder case: don't pick one, ask. |
 | Output structure | Dot-padded `LABEL ....... value` block: PRICE / MATCHES / NOT FOUND / ERROR / OFF-TASK | Same shape every time, so it's easy to scan, easy to test with code, and it fits the terminal look. |
-| temperature 0 | Deterministic sampling | Same input should give the same output. The reliability test depends on it. |
+| Model | Claude Sonnet 5 (`claude-sonnet-5`), effort `low`, no sampling params | Strong at tool use and following formats, at a lower price than Opus. Effort `low` fits a simple look-up-and-copy task. Sonnet 5 doesn't allow `temperature`, so consistency comes from the strict prompt, the examples, the pre-formatted numbers and the guard, and the reliability test measures it. |
 | Guard | `verify()` in `lib/assistant.js` | See Failure mode. |
 | Terminal UI | Plain HTML/CSS/JS, output rendered as `textContent` | Light, and model output can never inject HTML. |
 
@@ -31,7 +31,7 @@ NOTE ........ Flea prices move hourly; confirm in-game before trading.
 ```
 
 ## Responsible use
-- **Safe to enter:** Item names only. Never enter account names, emails, passwords, or RMT details. Every query is sent to OpenAI and tarkov.dev.
+- **Safe to enter:** Item names only. Never enter account names, emails, passwords, or RMT details. Every query is sent to Anthropic (Claude) and tarkov.dev.
 - **Where it can hallucinate:** Prices the model "remembers", rounded numbers, or the wrong item picked for a vague name ("red", "key", "battery").
 - **Bias and staleness:**
   - tarkov.dev prices are crowd-sourced. Low-volume items can be skewed by a few listings, and data can lag behind the game.

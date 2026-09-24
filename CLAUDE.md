@@ -13,15 +13,16 @@ Tarkov Price Terminal is a course assignment (weekly project, "Lane 3: control")
 
 ## Commands
 
-No build step and no npm dependencies. The project uses Node 21.7+ built-ins (`fetch`, `process.loadEnvFile`, `node:test`).
+No build step. There is one npm dependency, `@anthropic-ai/sdk`; everything else is Node 21.7+ built-ins (`fetch`, `process.loadEnvFile`, `node:test`).
 
 ```bash
-cp .env.example .env              # needs OPENAI_API_KEY; OPENAI_MODEL defaults to gpt-4.1-mini
+npm install
+cp .env.example .env              # needs ANTHROPIC_API_KEY; ANTHROPIC_MODEL defaults to claude-sonnet-5
 node server.js                    # http://localhost:3000 (PORT overrides)
 GUARD=off node server.js          # disables the guard, to demo the failure mode
 npm test                          # offline guard unit tests (no key, no network)
 node --test --test-name-pattern="rounded" tests/guard.test.mjs   # single test
-npm run test:reliability          # live: 5 inputs x 2 runs via OpenAI + tarkov.dev -> writes TEST-RESULTS.md
+npm run test:reliability          # live: 5 inputs x 2 runs via Claude + tarkov.dev -> writes TEST-RESULTS.md
 ```
 
 Don't run `node --test tests/`. It would pick up `reliability.mjs`, which makes live paid API calls.
@@ -31,7 +32,11 @@ Don't run `node --test tests/`. It would pick up `reliability.mjs`, which makes 
 A request passes through three layers. Together they keep the model from inventing prices:
 
 1. **`lib/tarkov.js`** queries the tarkov.dev GraphQL API (free, no key) for up to 5 matches. It **pre-formats every number into the exact display string** (`"₽ 412,300"`, `"+2.1%"`, `"2026-09-24 14:02 UTC"`) so the model only copies and never rounds. On API failure it returns `{error}` and does not throw.
-2. **`lib/assistant.js`** runs the OpenAI Chat Completions tool loop over raw `fetch` (temperature 0, one tool `lookup_item`, max 3 tool rounds). Messages are the system prompt from `prompts/system-prompt.md`, then the few-shot exchanges from `prompts/examples.json` (flattened, `_why` ignored), then the user turn prefixed `[mode: regular|pve]`.
+2. **`lib/assistant.js`** runs a manual Claude Messages API tool loop through `@anthropic-ai/sdk`. Settings: model `claude-sonnet-5`, `output_config.effort: "low"`, one `strict` tool `lookup_item`, max 3 tool rounds, then `tool_choice: none`. Inputs:
+   - `system` is `prompts/system-prompt.md`.
+   - `messages` is the few-shot exchanges from `prompts/examples.json` (Anthropic content-block format, flattened, `_why` ignored), then the user turn prefixed `[mode: regular|pve]`.
+
+   Sonnet 5 rejects `temperature`/`top_p` with a 400, so don't add them. Full `response.content` (including thinking blocks) is pushed back unchanged. All `tool_result` blocks go back in one user message. The client is created lazily in `ask()` so `verify()` can be imported without a key.
 3. **`verify()` guard (the named failure-mode mitigation):**
    - It pulls every number token out of the reply.
    - Each token must match, as a whole token, a number from **this turn's** tool results or the user's question. `24` and `48` are always allowed because they appear in labels.
@@ -48,5 +53,6 @@ Coupling to keep in sync when changing things:
 ## Known state
 
 - The GraphQL query in `lib/tarkov.js` has not been verified live: tarkov.dev returned "GraphQL server unavailable" throughout the initial build.
+- The Claude tool loop has not run live either: no Anthropic key was available when it was written. Only the offline tests and the missing- and invalid-key error paths have been exercised.
 - The reliability test's flea-banned case ("Red Rebel ice pick") is an assumption to confirm.
 - The "Why" column in `SPEC.md` is a draft the user must rewrite in their own words (rubric requirement). Don't polish it for them.

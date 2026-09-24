@@ -178,3 +178,55 @@ A forward commit instead. The placeholder `.env` stays in `df49a47`'s history, w
 **Collaboration**
 
 The user can still squash `df49a47` out before pushing if they want it gone from history.
+
+The user later removed `df49a47` from history themselves (current log: `df23f5e` → `987e0e7` → `92237f8`).
+
+### Interaction 5 — Switch the LLM from OpenAI to Claude Sonnet 5
+
+**User Prompt**
+
+> OpenAI API called will not be the method moving forward. Which Claude model should be used for this project?
+
+**Agent Outcome**
+
+Planned in plan mode using the `claude-api` skill's current model table. The model options offered were:
+- Opus 5 (recommended default, $5/$25 per 1M tokens)
+- Sonnet 5 ($2/$10)
+- Haiku 4.5 ($1/$5, the only one that still accepts `temperature`)
+
+The user chose **Claude Sonnet 5** (`claude-sonnet-5`). The LLM layer moved to `@anthropic-ai/sdk` with a manual tool loop. `ask()`'s return shape, `verify()`, the guard, the server, the UI and the tarkov.dev lookup are unchanged.
+
+**Rationale**
+
+- Sonnet 5 rejects `temperature`/`top_p` with a 400. "temperature 0" was dropped, and consistency now rests on the prompt, examples, pre-formatted tool data and guard. SPEC.md says so.
+- `effort: "low"` suits a look-up-and-copy task.
+- The manual loop was kept over the beta Tool Runner so the code can collect this turn's tool results for the guard.
+- The skill requires the official SDK over raw `fetch` in a JS project. That adds the project's first npm dependency.
+
+**Changes**
+
+- `lib/assistant.js`:
+  - SDK client created lazily, so `verify()` can be imported without a key.
+  - Top-level `system`, `strict` tool with `input_schema`, `tool_choice` auto, then none on the last round.
+  - Full `response.content` (including thinking) pushed back. All `tool_result` blocks go in one user message, with `is_error` on lookup errors.
+  - `refusal` and `max_tokens` stop reasons throw.
+  - One friendly message for both a missing key (plain SDK `Error`) and an invalid key (`AuthenticationError`).
+- `prompts/examples.json`: converted by script to `tool_use` / `tool_result` blocks. Example text and fake prices unchanged.
+- `prompts/system-prompt.md`: all-caps emphasis lowered (ALWAYS/NEVER/NOT/ONLY). No rule removed or weakened.
+- `package.json` / `package-lock.json`: `@anthropic-ai/sdk` ^0.128.0.
+- `.env.example`: `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL=claude-sonnet-5`.
+- `tests/reliability.mjs`: report header names the model and "effort low".
+- `README.md`, `SPEC.md` (Model row replaces "temperature 0", data now goes to Anthropic), `CLAUDE.md` (commands, dependency, layer 2, known state), `PLAN.md` (update note at top).
+
+**Verification**
+
+- `npm test`: 6/6 pass. The module imports without a key.
+- `POST /api/ask` with no key and with an invalid key both return the friendly error. The invalid-key request reached the API and got a 401.
+- **Not verified live:** no Anthropic credentials on this machine (`ANTHROPIC_API_KEY` unset, `ant` CLI not installed), and tarkov.dev still returns "GraphQL server unavailable". The request shape past authentication and the reliability suite are untested.
+
+**Collaboration**
+
+- The user dropped OpenAI.
+- The user chose Sonnet 5 over the skill's default recommendation of Opus 5.
+- The user's local `.env` still has the OpenAI variable names; they need to replace them with `ANTHROPIC_API_KEY`.
+- `../PROMPT-LOG.md` was not edited.

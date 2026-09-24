@@ -4,8 +4,9 @@ A one-task AI assistant: type an Escape From Tarkov item, get its current market
 
 ## Run
 ```bash
-cp .env.example .env        # paste your OpenAI key into .env
-node server.js              # Node 21.7+ (no npm install needed)
+npm install                 # one dependency: @anthropic-ai/sdk
+cp .env.example .env        # paste your Anthropic API key into .env
+node server.js              # Node 21.7+
 # open http://localhost:3000
 ```
 In the terminal: `ledx`, `gpu pve`, `mode pve`, `help`, `clear`.
@@ -28,7 +29,7 @@ See `SPEC.md` → Failure mode.
 | `prompts/system-prompt.md` | Role, rules, and the fixed output formats |
 | `prompts/examples.json` | 2 few-shot exchanges (clean match, ambiguous name) |
 | `lib/tarkov.js` | Live lookup against tarkov.dev, with numbers pre-formatted |
-| `lib/assistant.js` | OpenAI tool loop and the number-verification guard |
+| `lib/assistant.js` | Claude (Sonnet 5) tool loop and the number-verification guard |
 | `server.js` | Static UI and `POST /api/ask` |
 | `public/` | Terminal UI |
 | `SPEC.md` | One-page spec sheet |
