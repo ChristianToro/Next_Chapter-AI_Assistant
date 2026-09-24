@@ -1,0 +1,35 @@
+// Offline unit test for the anti-hallucination guard. No API keys needed.
+// Run: node --test tests/
+
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { verify } from '../lib/assistant.js';
+
+const tool = JSON.stringify({ matches: [{ fleaAvg24h: '₽ 412,300', change48h: '+2.1%', updated: '2026-09-24 14:02 UTC' }] });
+
+test('passes when every number comes from the tool result', () => {
+  const reply = 'FLEA AVG 24H  ₽ 412,300\n48H TREND ... +2.1%\nUPDATED ..... 2026-09-24 14:02 UTC';
+  assert.equal(verify(reply, [tool]).passed, true);
+});
+
+test('blocks an invented price', () => {
+  const r = verify('FLEA AVG 24H  ₽ 450,000', [tool]);
+  assert.equal(r.passed, false);
+  assert.deepEqual(r.unverified, ['450,000']);
+});
+
+test('blocks a rounded price (412,000 is not 412,300)', () => {
+  assert.equal(verify('₽ 412,000', [tool]).passed, false);
+});
+
+test('matches whole numbers, not substrings (412 is not 412,300)', () => {
+  assert.equal(verify('₽ 412', [tool]).passed, false);
+});
+
+test('blocks any price when no tool was called (answer from memory)', () => {
+  assert.equal(verify('ITEM ........ LEDX\nFLEA AVG 24H  ₽ 900,000', []).passed, false);
+});
+
+test('allows numbers from the user question and label digits', () => {
+  assert.equal(verify('OFF-TASK .... no m4 builds. 24H 48H', [], 'best m4 build').passed, true);
+});

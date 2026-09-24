@@ -1,0 +1,14 @@
+{
+  "name": "tarkov-price-terminal",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "One-task AI assistant: current market value of an Escape From Tarkov item.",
+  "scripts": {
+    "start": "node server.js",
+    "demo:unguarded": "GUARD=off node server.js",
+    "test": "node --test tests/guard.test.mjs",
+    "test:reliability": "node tests/reliability.mjs"
+  },
+  "engines": { "node": ">=21.7" }
+}

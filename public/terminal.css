@@ -1,0 +1,28 @@
+:root {
+  --bg: #0b0f0a;
+  --fg: #b8f5a0;
+  --dim: #5f7f55;
+  --warn: #f5d76e;
+  --err: #ff7a6b;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); }
+body {
+  color: var(--fg);
+  font: 15px/1.45 ui-monospace, "Cascadia Mono", Consolas, "DejaVu Sans Mono", monospace;
+  text-shadow: 0 0 4px rgba(184, 245, 160, .35);
+}
+#term { max-width: 900px; margin: 0 auto; padding: 16px; min-height: 100%; cursor: text; }
+#out { white-space: pre-wrap; word-break: break-word; }
+.dim { color: var(--dim); }
+.warn { color: var(--warn); }
+.err { color: var(--err); }
+.echo { margin-top: .6em; }
+#line { display: flex; gap: .6ch; margin-top: .6em; }
+.prompt { color: var(--dim); white-space: nowrap; }
+#in {
+  flex: 1; min-width: 0; background: none; border: 0; outline: 0; padding: 0;
+  color: var(--fg); font: inherit; caret-color: var(--fg); text-shadow: inherit;
+}
+.busy::after { content: "▌"; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }

@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tarkov Price Terminal</title>
+  <link rel="stylesheet" href="terminal.css">
+</head>
+<body>
+  <main id="term" aria-live="polite">
+    <div id="out"></div>
+    <form id="line" autocomplete="off">
+      <span class="prompt" id="prompt">pmc@flea:~[pvp]$</span>
+      <input id="in" autofocus spellcheck="false" aria-label="command">
+    </form>
+  </main>
+  <script src="terminal.js" type="module"></script>
+</body>
+</html>
