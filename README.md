@@ -5,7 +5,7 @@ A one-task AI assistant: type an Escape From Tarkov item, get its current market
 ## Run
 ```bash
 npm install                 # one dependency: @anthropic-ai/sdk
-cp .env.example .env        # paste your Anthropic API key into .env
+cp .env.example .env        # add ANTHROPIC_API_KEY and TARKOV_MARKET_API_KEY
 node server.js              # Node 21.7+
 # open http://localhost:3000
 ```
@@ -28,8 +28,10 @@ See `SPEC.md` → Failure mode.
 |---|---|
 | `prompts/system-prompt.md` | Role, rules, and the fixed output formats |
 | `prompts/examples.json` | 2 few-shot exchanges (clean match, ambiguous name) |
-| `lib/tarkov.js` | Live lookup against tarkov.dev, with numbers pre-formatted |
+| `lib/tarkov.js` | Live lookup against the Tarkov Market API, with numbers pre-formatted |
 | `lib/assistant.js` | Claude (Sonnet 5) tool loop and the number-verification guard |
 | `server.js` | Static UI and `POST /api/ask` |
 | `public/` | Terminal UI |
 | `SPEC.md` | One-page spec sheet |
+
+Price data provided by [tarkov-market.com](https://tarkov-market.com) (Pro API key, personal use).

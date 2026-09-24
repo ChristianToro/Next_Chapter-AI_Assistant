@@ -10,7 +10,7 @@
 | Part | What | Why |
 |---|---|---|
 | System prompt | `prompts/system-prompt.md`: role, 11 numbered rules, 5 fixed formats | Numbered, blunt rules are easier for the model to follow and easier for me to point at when something breaks. |
-| Tool | `lookup_item` → tarkov.dev GraphQL (free, live, no key) | The model has no live prices. Without a tool it can only guess, so the tool is the whole point. |
+| Tool | `lookup_item` → Tarkov Market API (live flea scans, Pro API key) | The model has no live prices. Without a tool it can only guess, so the tool is the whole point. |
 | Pre-formatted numbers | The server turns `412300` into `"₽ 412,300"` before the model sees it | The model only copies strings. It never rounds or does math, and that makes the output checkable. |
 | Few-shot (2) | Clean match with a mode override, and an ambiguous name with a MATCHES list | Example 1 shows both steps (call the tool, then fill the format). Example 2 shows the harder case: don't pick one, ask. |
 | Output structure | Dot-padded `LABEL ....... value` block: PRICE / MATCHES / NOT FOUND / ERROR / OFF-TASK | Same shape every time, so it's easy to scan, easy to test with code, and it fits the terminal look. |
@@ -22,19 +22,19 @@
 ```
 ITEM ........ LEDX Skin Transilluminator
 MODE ........ PvP
-FLEA AVG 24H  ₽ ...   (low ₽ ... / high ₽ ...)
+FLEA AVG 24H  ₽ ...   (7-day avg ₽ ...)
 LOWEST NOW .. ₽ ...
-48H TREND ... +x.x%
+24H TREND ... +x.x%
 BEST TRADER . <Trader> ₽ ...
-UPDATED ..... YYYY-MM-DD HH:MM UTC · source: tarkov.dev
+UPDATED ..... YYYY-MM-DD HH:MM UTC · source: tarkov-market.com
 NOTE ........ Flea prices move hourly; confirm in-game before trading.
 ```
 
 ## Responsible use
-- **Safe to enter:** Item names only. Never enter account names, emails, passwords, or RMT details. Every query is sent to Anthropic (Claude) and tarkov.dev.
+- **Safe to enter:** Item names only. Never enter account names, emails, passwords, or RMT details. Every query is sent to Anthropic (Claude) and tarkov-market.com.
 - **Where it can hallucinate:** Prices the model "remembers", rounded numbers, or the wrong item picked for a vague name ("red", "key", "battery").
 - **Bias and staleness:**
-  - tarkov.dev prices are crowd-sourced. Low-volume items can be skewed by a few listings, and data can lag behind the game.
+  - Tarkov Market prices come from its flea-market scanner. Low-volume items can be skewed by a few listings, and a price is only as fresh as the last scan (check `UPDATED`).
   - The default is PvP. PvE economies differ a lot, so check the MODE line.
 - **How to verify:**
   1. Check the `UPDATED` time.
@@ -46,7 +46,7 @@ NOTE ........ Flea prices move hourly; confirm in-game before trading.
 **Where it breaks:**
 - Ask for a flea-banned item (no flea price).
 - Or give a vague name.
-- Or hit it while the price source is down. This happened during the build: tarkov.dev returned "GraphQL server unavailable".
+- Or hit it while the price source is down. This happened during the build: the first source, tarkov.dev, returned "GraphQL server unavailable" and was later deprecated, so the project moved to Tarkov Market.
 
 Without controls, the model fills the gap with a believable number from its training data. That number is wrong and looks exactly like a real one.
 

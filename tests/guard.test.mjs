@@ -5,10 +5,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { verify } from '../lib/assistant.js';
 
-const tool = JSON.stringify({ matches: [{ fleaAvg24h: '₽ 412,300', change48h: '+2.1%', updated: '2026-09-24 14:02 UTC' }] });
+const tool = JSON.stringify({ matches: [{ fleaAvg24h: '₽ 412,300', change24h: '+2.1%', updated: '2026-09-24 14:02 UTC' }] });
 
 test('passes when every number comes from the tool result', () => {
-  const reply = 'FLEA AVG 24H  ₽ 412,300\n48H TREND ... +2.1%\nUPDATED ..... 2026-09-24 14:02 UTC';
+  const reply = 'FLEA AVG 24H  ₽ 412,300\n24H TREND ... +2.1%\nUPDATED ..... 2026-09-24 14:02 UTC';
   assert.equal(verify(reply, [tool]).passed, true);
 });
 
@@ -31,5 +31,5 @@ test('blocks any price when no tool was called (answer from memory)', () => {
 });
 
 test('allows numbers from the user question and label digits', () => {
-  assert.equal(verify('OFF-TASK .... no m4 builds. 24H 48H', [], 'best m4 build').passed, true);
+  assert.equal(verify('OFF-TASK .... no m4 builds. 24H 7-day', [], 'best m4 build').passed, true);
 });

@@ -14,7 +14,7 @@ const HELP = `TARKOV PRICE TERMINAL v1 — current market value of one EFT item.
   clear           clear the screen
   help            show this help
 
-Prices come live from tarkov.dev (crowd-sourced). Confirm in-game before trading.
+Price data: tarkov-market.com (live flea scans). Confirm in-game before trading.
 Only type item names. Never enter account names, emails or passwords.`;
 
 print(HELP, 'dim');
@@ -47,7 +47,7 @@ form.addEventListener('submit', async (e) => {
     return print(`mode set to ${m[1].toUpperCase()}`, 'dim');
   }
 
-  const pending = print('querying tarkov.dev ', 'dim busy');
+  const pending = print('querying tarkov-market.com ', 'dim busy');
   input.disabled = true;
   try {
     const res = await fetch('/api/ask', {

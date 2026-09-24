@@ -1,5 +1,5 @@
 // Reliability test: 5 fixed inputs x 2 runs through the REAL pipeline
-// (Claude + live tarkov.dev). Writes TEST-RESULTS.md.
+// (Claude + live Tarkov Market API). Writes TEST-RESULTS.md.
 // Run: node tests/reliability.mjs
 
 import { writeFileSync } from 'node:fs';
@@ -8,7 +8,7 @@ try { process.loadEnvFile(); } catch {}
 const { ask } = await import('../lib/assistant.js');
 
 const RUNS = 2;
-const PRICE_LABELS = ['ITEM', 'MODE', 'FLEA AVG 24H', 'LOWEST NOW', '48H TREND', 'BEST TRADER', 'UPDATED', 'NOTE'];
+const PRICE_LABELS = ['ITEM', 'MODE', 'FLEA AVG 24H', 'LOWEST NOW', '24H TREND', 'BEST TRADER', 'UPDATED', 'NOTE'];
 
 const CASES = [
   { input: 'LEDX', mode: 'regular', expect: 'price' },

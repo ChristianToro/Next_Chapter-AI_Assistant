@@ -280,3 +280,47 @@ Rewrote `lib/tarkov.js` against it, keeping the tool-result field names the prom
 
 - The user identified tarkov.dev as deprecated, chose Tarkov Market, already had a Pro key, and limited the scope to two files.
 - Open follow-up the user hasn't approved yet: the prompt's `UPDATED ... source: tarkov.dev` line, the few-shot answers, the terminal help text, README and SPEC still credit tarkov.dev. This conflicts with Tarkov Market's attribution requirement. The label update (7-day avg, 24H TREND) is also pending.
+
+### Interaction 7 — Credit tarkov-market.com and relabel the PRICE block
+
+**User Prompt**
+
+> yes, update those files and the labels
+
+**Agent Outcome**
+
+- The PRICE block now shows `FLEA AVG 24H <avg24h> (7-day avg <avg7d>)` and `24H TREND`, in place of the 24h low/high and 48H TREND this source doesn't have.
+- The `UPDATED` line and the terminal help/loading text credit tarkov-market.com, as its terms require.
+- `lib/tarkov.js` no longer returns the always-null legacy fields.
+
+**Rationale**
+
+- Only fields the data source actually supplies are shown.
+- Because `7-day avg` puts a digit into a label, the guard's label allow-list changed from `{24, 48}` to `{24, 7}`. An answer carrying the old `48H` label is now blocked.
+- Rule 8 is now explicit about which lines become `not on flea`, and mentions `bannedOnFlea`.
+
+**Changes**
+
+- `lib/tarkov.js`: removed `flea24hLow`, `flea24hHigh`, `change48h`.
+- `prompts/system-prompt.md`: PRICE format, rule 8, source credit.
+- `prompts/examples.json`:
+  - Tool results rebuilt to the exact `lookupItem()` shape. Fake prices kept, and the example keycard holder case is flagged `bannedOnFlea`.
+  - Answer 1 relabeled.
+- `lib/assistant.js`: `verify()` allowed label digits `24` and `7`.
+- `tests/guard.test.mjs`, `tests/reliability.mjs` (`PRICE_LABELS`): new labels.
+- `public/terminal.js`: help and loading text credit tarkov-market.com.
+- `README.md` (setup keys, data credit line), `SPEC.md` (tool row, output block, data recipient, bias note, failure-mode history), `CLAUDE.md` (layer 1, guard digits, field names, known state).
+
+**Verification**
+
+- `npm test`: 6/6.
+- Offline check with stubbed `fetch` on the docs' sample:
+  - The few-shot answer passes the guard against its own tool result.
+  - A LEDX PRICE block and a "not on flea" block (with a `$ 1,450 (₽ 190,000)` trader price) both pass.
+  - A `48H` label is blocked.
+- **Not verified live:** no `ANTHROPIC_API_KEY` or `TARKOV_MARKET_API_KEY` in `.env`.
+
+**Collaboration**
+
+- The user approved updating the files outside the earlier two-file scope and relabeling.
+- SPEC "Why" column: only the "What" cells and factual lines changed. The user's draft rationale text was left for them to rewrite.
