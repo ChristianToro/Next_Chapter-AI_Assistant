@@ -367,3 +367,32 @@ Rewrote `lib/tarkov.js` against it, keeping the tool-result field names the prom
 **Collaboration**
 
 The user asked for the prompt change. The terminal-side "yes" handling was added because a stateless server can't interpret a bare "yes".
+
+### Interaction 9 — Review of the first live reliability run
+
+**User Prompt**
+
+> npm run test:reliability was conducted, and a test-results.md was generated. Review the results
+
+**Agent Outcome**
+
+First live run (Sonnet 5, effort low, 6 inputs × 2): 6 of 12 runs passed. Only off-task and "Red Rebel ice pick" passed both runs. Root causes, confirmed offline and with read-only Tarkov Market API calls using the user's key:
+
+1. **Guard bug: every MATCHES reply is blocked.** `verify()`'s regex `\d[\d,]*` captures the comma after a JSON number (`"matchCount":5,` → `5,`), so the count `5` never matches. Reproduced offline; few-shot example 2 fails against its own tool result (`3`).
+2. **The model answered from the few-shot example (LEDX run 2).** It made 0 tool calls and copied example 1's fake prices (901,234 / 950,000 / 889,000 / 555,111 / 2026-01-15). The examples are real message turns, so the model sees "ledx" as already answered earlier in the conversation. The guard blocked it. This is a real, captured instance of the named failure mode.
+3. **The model corrects spelling before searching the user's words.** `ledz` ×2 and `gpu` run 2 made 1 tool call and returned DID YOU MEAN.
+   - The API returns **Can of herring** as the single match for `ledz`, and **Graphics card [GPU]** first for `gpu`. The GPU result is an exact shortName match, so it should have been PRICE.
+   - Either the model skipped the user's spelling, or it suggested LEDX from memory. That would break rule 5, and the guard only checks numbers, not names.
+   - The report doesn't record tool queries, so which of the two happened can't be told.
+4. **Fuzzy single matches are a wrong-item risk.** Rule 5 says "exactly 1 match → PRICE", which would price Can of herring for `ledz`.
+5. **Test-data assumption was wrong.** Red Rebel ice pick is not flea-banned (`bannedOnFlea: false`, price 880,000), so the no-flea branch was never tested. `/items/all` shows 681 banned items, e.g. Physical Bitcoin [0.2BTC] (trader Therapist) and GPNVG-18.
+
+**Verification**
+
+- Offline `verify()` reproduction for #1.
+- `GET /item?q=` for ledz / ledx / gpu / key, and `GET /items/all` for banned items (read-only, key not printed).
+- No code changed.
+
+**Collaboration**
+
+The user ran the live suite; the review was agent-led. `TEST-RESULTS.md` is untracked, and the next run overwrites it. It's worth keeping as failure-mode evidence (LEDX run 2).
