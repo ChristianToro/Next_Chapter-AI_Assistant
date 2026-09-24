@@ -324,3 +324,46 @@ Rewrote `lib/tarkov.js` against it, keeping the tool-result field names the prom
 
 - The user approved updating the files outside the earlier two-file scope and relabeling.
 - SPEC "Why" column: only the "What" cells and factual lines changed. The user's draft rationale text was left for them to rewrite.
+
+### Interaction 8 — Spelling leniency with "did you mean" + "yes"
+
+**User Prompt**
+
+> There needs to be a way to allow leniency with spelling. Modify the "no match" section in the system-prompt.md. Allow a user to reply "yes" to a closely matched item
+
+**Agent Outcome**
+
+- On 0 matches, the model now retries with its best guess at the intended name, up to 2 more searches.
+- If a corrected spelling finds the item, the reply is a new DID YOU MEAN block with the exact name from the tool result. No prices are shown until the user types "yes".
+- The terminal remembers the suggestion and turns "yes" into a lookup of that exact name.
+
+**Rationale**
+
+- The server is stateless: each `/api/ask` call is one question with no history. So "yes" is resolved in the browser by re-asking with the suggested name, instead of adding conversation state.
+- Requiring confirmation, and requiring the suggestion to come from the tool result, keeps a wrong spelling guess from turning into a wrong-item price. This extends the failure-mode mitigation.
+- Rule numbers were kept stable because SPEC.md cites them.
+- 1 search + 2 retries fits the existing `MAX_TOOL_ROUNDS = 3`, so there is no loop change.
+
+**Changes**
+
+- `prompts/system-prompt.md`:
+  - rule 4: spelling leniency, up to 2 corrected searches
+  - rule 5: DID YOU MEAN when the match came only from a correction, with the name copied from the tool result
+  - rule 7: NOT FOUND only after the retries
+  - new DID YOU MEAN format, and NOT FOUND wording updated
+- `public/terminal.js`: a `suggestion` variable, `y|yes|yeah|yep|yup` handling, and a `yes` line in help. Any other input clears the suggestion.
+- `tests/reliability.mjs`: new `ledz` → `didyoumean` case. It must start with DID YOU MEAN, show no ₽, and make ≥2 tool calls. Now 6 inputs.
+- `README.md`, `SPEC.md` (6 formats, 6 inputs, mitigation now names rule 5 and the confirmation step), `CLAUDE.md` (label coupling, "yes" flow).
+
+**Verification**
+
+- `npm test`: 6/6. `node --check` passes on `public/terminal.js` and `tests/reliability.mjs`.
+- Simulated UI run with a stub DOM and stubbed `/api/ask`:
+  - "yes" with nothing pending prints a local hint.
+  - `ledz` shows the suggestion, and after `mode pve`, "YES" sends `{question:"LEDX Skin Transilluminator", mode:"pve"}`.
+  - A second "yes" has nothing to confirm.
+- **Not verified live:** whether Sonnet 5 follows rules 4/5 (misspelling → DID YOU MEAN) needs the reliability run with both API keys. There is no few-shot example for this case, which keeps the assignment's 1–2 example limit.
+
+**Collaboration**
+
+The user asked for the prompt change. The terminal-side "yes" handling was added because a stateless server can't interpret a bare "yes".

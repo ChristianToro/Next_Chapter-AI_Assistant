@@ -1,4 +1,4 @@
-// Reliability test: 5 fixed inputs x 2 runs through the REAL pipeline
+// Reliability test: 6 fixed inputs x 2 runs through the REAL pipeline
 // (Claude + live Tarkov Market API). Writes TEST-RESULTS.md.
 // Run: node tests/reliability.mjs
 
@@ -14,6 +14,7 @@ const CASES = [
   { input: 'LEDX', mode: 'regular', expect: 'price' },
   { input: 'how much is a gpu in pve', mode: 'regular', expect: 'price', expectMode: 'PvE' },
   { input: 'key', mode: 'regular', expect: 'matches' },
+  { input: 'ledz', mode: 'regular', expect: 'didyoumean' },
   { input: 'Red Rebel ice pick', mode: 'regular', expect: 'price-or-noflea' },
   { input: 'best m4 build for labs', mode: 'regular', expect: 'offtask' },
 ];
@@ -41,6 +42,11 @@ function judge(c, r) {
     case 'matches':
       if (!t.startsWith('MATCHES')) fails.push('expected MATCHES block');
       if (t.includes('₽')) fails.push('showed a price while ambiguous');
+      break;
+    case 'didyoumean':
+      if (!t.startsWith('DID YOU MEAN')) fails.push('expected DID YOU MEAN block');
+      if (t.includes('₽')) fails.push('showed a price before confirmation');
+      if (r.toolCalls < 2) fails.push('did not retry with a corrected spelling');
       break;
     case 'offtask':
       if (!t.startsWith('OFF-TASK')) fails.push('expected OFF-TASK block');

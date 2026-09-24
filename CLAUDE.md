@@ -22,7 +22,7 @@ node server.js                    # http://localhost:3000 (PORT overrides)
 GUARD=off node server.js          # disables the guard, to demo the failure mode
 npm test                          # offline guard unit tests (no key, no network)
 node --test --test-name-pattern="rounded" tests/guard.test.mjs   # single test
-npm run test:reliability          # live: 5 inputs x 2 runs via Claude + Tarkov Market -> writes TEST-RESULTS.md
+npm run test:reliability          # live: 6 inputs x 2 runs via Claude + Tarkov Market -> writes TEST-RESULTS.md
 ```
 
 Don't run `node --test tests/`. It would pick up `reliability.mjs`, which makes live paid API calls.
@@ -44,11 +44,11 @@ A request passes through three layers. Together they keep the model from inventi
    - Few-shot example prices are deliberately fake and never count as allowed, so a copied example price also gets blocked.
 
 Coupling to keep in sync when changing things:
-- **Output format labels** (`ITEM ........`, `FLEA AVG 24H`, `MATCHES .....`, `ERROR`, `OFF-TASK`, etc.) are defined in `prompts/system-prompt.md`. They are also hard-coded in `prompts/examples.json` answers, in `tests/reliability.mjs` (`PRICE_LABELS`, `startsWith` checks), and in `public/terminal.js` (the warn-color regex).
+- **Output format labels** (`ITEM ........`, `FLEA AVG 24H`, `MATCHES .....`, `DID YOU MEAN`, `ERROR`, `OFF-TASK`, etc.) are defined in `prompts/system-prompt.md`. They are also hard-coded in `prompts/examples.json` answers, in `tests/reliability.mjs` (`PRICE_LABELS`, `startsWith` checks), and in `public/terminal.js` (the warn-color regex, and the `DID YOU MEAN` regex that captures the suggestion).
 - **Tool-result field names** (`fleaAvg24h`, `fleaAvg7d`, `change24h`, `bestTrader`, ...) must match between `lib/tarkov.js`, the `<placeholders>` in the system prompt, and the example tool results.
 - Any new number shown in output has to come from the tool result as a pre-formatted string, or the guard will block it. A new digit in a label has to be added to the `allowed` set in `verify()`.
 
-`server.js` is a plain `node:http` server: static files from `public/` (with a path-traversal check) plus `POST /api/ask` `{question, mode}` → `{reply, raw, toolCalls, guard}`. The frontend (`public/terminal.js`) handles `help`, `clear`, and `mode pve|pvp` itself, and renders replies with `textContent` only. PvP is `regular` internally (default Tarkov Market path); PvE uses the `/pve` path.
+`server.js` is a plain `node:http` server: static files from `public/` (with a path-traversal check) plus `POST /api/ask` `{question, mode}` → `{reply, raw, toolCalls, guard}`. The frontend (`public/terminal.js`) handles `help`, `clear`, and `mode pve|pvp` itself. It also handles **"yes"**: the server is stateless, so the terminal stores the item name from the last `DID YOU MEAN` reply and sends that exact name as the next question. The model does the spelling correction (prompt rules 4, 5, 7), within the existing 3 tool rounds. Replies are rendered with `textContent` only. PvP is `regular` internally (default Tarkov Market path); PvE uses the `/pve` path.
 
 ## Known state
 

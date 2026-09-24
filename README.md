@@ -14,7 +14,7 @@ In the terminal: `ledx`, `gpu pve`, `mode pve`, `help`, `clear`.
 ## Test
 ```bash
 npm test                    # offline guard tests (no key needed)
-npm run test:reliability    # 5 inputs x 2 runs, live -> TEST-RESULTS.md
+npm run test:reliability    # 6 inputs x 2 runs, live -> TEST-RESULTS.md
 ```
 
 ## Demo the failure mode

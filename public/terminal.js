@@ -6,10 +6,12 @@ const form = document.getElementById('line');
 let mode = 'regular';
 const history = [];
 let histPos = 0;
+let suggestion = null; // item name from the last DID YOU MEAN reply, confirmed with "yes"
 
 const HELP = `TARKOV PRICE TERMINAL v1 — current market value of one EFT item.
 
   <item name>     look up a price       e.g.  ledx | gpu pve | price of salewa
+  yes             confirm a DID YOU MEAN suggestion
   mode pve|pvp    switch default mode   (currently shown in the prompt)
   clear           clear the screen
   help            show this help
@@ -47,19 +49,29 @@ form.addEventListener('submit', async (e) => {
     return print(`mode set to ${m[1].toUpperCase()}`, 'dim');
   }
 
+  // The server keeps no conversation, so "yes" is resolved here: it re-asks
+  // with the exact item name the assistant suggested (copied from live data).
+  let question = cmd;
+  if (/^(y|yes|yeah|yep|yup)$/.test(lower)) {
+    if (!suggestion) return print('nothing to confirm — type an item name', 'dim');
+    question = suggestion;
+  }
+  suggestion = null;
+
   const pending = print('querying tarkov-market.com ', 'dim busy');
   input.disabled = true;
   try {
     const res = await fetch('/api/ask', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question: cmd, mode }),
+      body: JSON.stringify({ question, mode }),
     });
     const data = await res.json();
     pending.remove();
     if (!res.ok) return print(`ERROR ....... ${data.error}`, 'err');
     const cls = /^(UNVERIFIED|ERROR|NOT FOUND|OFF-TASK)/.test(data.reply) ? 'warn' : '';
     print(data.reply, cls);
+    suggestion = data.reply.match(/^DID YOU MEAN\s+(.+)$/m)?.[1].trim() ?? null;
     if (!data.guard.enabled) print('[guard OFF — output not verified]', 'err');
   } catch (err) {
     pending.remove();
