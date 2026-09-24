@@ -230,3 +230,53 @@ The user chose **Claude Sonnet 5** (`claude-sonnet-5`). The LLM layer moved to `
 - The user chose Sonnet 5 over the skill's default recommendation of Opus 5.
 - The user's local `.env` still has the OpenAI variable names; they need to replace them with `ANTHROPIC_API_KEY`.
 - `../PROMPT-LOG.md` was not edited.
+
+### Interaction 6 — Replace tarkov.dev with the Tarkov Market API
+
+**User Prompt**
+
+> The tarkov.dev api source is deprecated and no longer maintained. Review tarkov-market.com/dev/api for a new method
+
+Follow-up, after being told the API needs a Pro key:
+
+> I have an API key from tarkov market. Rewrite lib/tarkov.js, and edit .env.example to accept the key
+
+**Agent Outcome**
+
+Reviewed the Tarkov Market API docs:
+- `GET https://api.tarkov-market.app/api/v1/item?q=`, with PvE at `/api/v1/pve/item`
+- `x-api-key` auth, Pro key required
+- up to 5 matches, exact match first
+- 300 requests/min
+- terms: personal use, and public projects must credit tarkov-market.com
+
+Rewrote `lib/tarkov.js` against it, keeping the tool-result field names the prompt and examples expect.
+
+**Rationale**
+
+- Kept to the two files the user named, so existing field names were preserved and fields this source lacks are set to `null`. The prompt then prints `n/a` for them instead of breaking.
+  - Missing: 24h low/high (`flea24hLow`, `flea24hHigh`) and 48h change (`change48h`).
+  - The 24h change was not relabeled as 48h.
+- Flea prices are nulled when `bannedOnFlea` is true or `haveMarketData` is false. This gives an explicit "not on flea" signal, where tarkov.dev only had a missing price.
+- Trader prices show the native currency, plus the ₽ value when it differs.
+- The key is sent as a header, never in the query string, so it stays out of URLs and logs.
+
+**Changes**
+
+- `lib/tarkov.js`:
+  - Rewrote the lookup against the Tarkov Market REST API.
+  - Added fields `bannedOnFlea`, `fleaAvg7d`, `change24h`, `source`.
+  - Explicit errors for a missing key, 401 and 429.
+- `.env.example`: added `TARKOV_MARKET_API_KEY`.
+- `CLAUDE.md`: data-source description, env vars, and known state.
+
+**Verification**
+
+- Stubbed `fetch` with the docs' sample LEDX response plus a synthetic flea-banned item with a $ trader price. The output mapped correctly, the PvE path was used, and the key was in the header and not the URL.
+- 401 and missing-key cases return `{error}`. `npm test` is 6/6.
+- **Not verified live:** `.env` has no `TARKOV_MARKET_API_KEY` yet.
+
+**Collaboration**
+
+- The user identified tarkov.dev as deprecated, chose Tarkov Market, already had a Pro key, and limited the scope to two files.
+- Open follow-up the user hasn't approved yet: the prompt's `UPDATED ... source: tarkov.dev` line, the few-shot answers, the terminal help text, README and SPEC still credit tarkov.dev. This conflicts with Tarkov Market's attribution requirement. The label update (7-day avg, 24H TREND) is also pending.
