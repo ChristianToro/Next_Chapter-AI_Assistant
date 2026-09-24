@@ -144,3 +144,37 @@ Documentation only; no code changed.
 
 - Found an OpenAI Codex config at `~/.codex` and offered to import it with `/import`. It was not read or imported.
 - The `prompt-history` skill is user-invoked only, so it was started once the user ran `/prompt-history`.
+
+### Interaction 4 — Stop tracking .env
+
+**User Prompt**
+
+> git is tracked my dot files and referencing changes that should not be tracked
+
+**Agent Outcome**
+
+- The user's local commit `df49a47` ("OpenAI API key added") had committed `.env`.
+- `.gitignore` existed but was untracked.
+- Checks with values masked showed that `.env` held only the `sk-...` placeholder, and that `origin/main` has no `.env`. No secret leaked.
+- Commit `3b5bb75` runs `git rm --cached .env` and adds a broader `.gitignore`. `.env` stays on disk and is now ignored.
+
+**Changes**
+
+- `.gitignore`: ignores `.env` and `.env.*` (except `.env.example`), `node_modules/`, `.claude/settings.local.json`, and OS files including WSL `*:Zone.Identifier`.
+
+**Attempted Approach**
+
+Dropping the unpushed `df49a47` with `git reset HEAD~1` was denied by the permission classifier as a destructive git operation.
+
+**Resolution**
+
+A forward commit instead. The placeholder `.env` stays in `df49a47`'s history, which is harmless since it holds no real key.
+
+**Verification**
+
+- `git status --short --ignored` shows `!! .env`.
+- `git ls-files` lists only `.env.example` and `.gitignore` as dotfiles.
+
+**Collaboration**
+
+The user can still squash `df49a47` out before pushing if they want it gone from history.
