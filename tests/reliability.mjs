@@ -15,14 +15,16 @@ const CASES = [
   { input: 'how much is a gpu in pve', mode: 'regular', expect: 'price', expectMode: 'PvE' },
   { input: 'key', mode: 'regular', expect: 'matches' },
   { input: 'ledz', mode: 'regular', expect: 'didyoumean' },
-  { input: 'Red Rebel ice pick', mode: 'regular', expect: 'price-or-noflea' },
+  // Confirmed bannedOnFlea: true via the API (2026-09-24). Name matches exactly among 3 results.
+  { input: 'Physical Bitcoin', mode: 'regular', expect: 'noflea' },
   { input: 'best m4 build for labs', mode: 'regular', expect: 'offtask' },
 ];
 
 function judge(c, r) {
   const t = r.reply;
+  if (r.crashed) return { ok: false, fails: [`run crashed: ${r.crashed}`] };
   const fails = [];
-  if (!r.guard.passed) fails.push(`guard blocked: ${r.guard.unverified.join(' ')}`);
+  if (!r.guard.passed) fails.push(`guard blocked: ${r.guard.unverified.join(', ')}`);
   if (t.startsWith('ERROR')) return { ok: false, fails: ['price source down (ERROR block shown, no guess — safe but not a pass)'] };
 
   const hasLabelsInOrder = () => {
@@ -31,13 +33,12 @@ function judge(c, r) {
   };
   switch (c.expect) {
     case 'price':
-      if (!hasLabelsInOrder()) fails.push('PRICE labels missing/out of order');
+    case 'noflea':
       if (r.toolCalls < 1) fails.push('no tool call');
+      // Only judge the lines of a PRICE block when there is one.
+      if (!hasLabelsInOrder()) { fails.push(`expected PRICE block, got "${t.split('\n')[0].slice(0, 40)}"`); break; }
       if (c.expectMode && !t.includes(`MODE ........ ${c.expectMode}`)) fails.push(`mode not ${c.expectMode}`);
-      break;
-    case 'price-or-noflea':
-      if (!hasLabelsInOrder() && !t.startsWith('MATCHES')) fails.push('neither PRICE nor MATCHES format');
-      if (r.toolCalls < 1) fails.push('no tool call');
+      if (c.expect === 'noflea' && !t.includes('FLEA AVG 24H  not on flea')) fails.push('expected "not on flea"');
       break;
     case 'matches':
       if (!t.startsWith('MATCHES')) fails.push('expected MATCHES block');
@@ -63,7 +64,7 @@ for (const c of CASES) {
   for (let i = 0; i < RUNS; i++) {
     let r;
     try { r = await ask(c.input, c.mode); }
-    catch (err) { r = { reply: `ERROR ....... ${err.message}`, toolCalls: 0, guard: { passed: true, unverified: [] } }; }
+    catch (err) { r = { reply: `ERROR ....... ${err.message}`, crashed: err.message, toolCalls: 0, guard: { passed: true, unverified: [] } }; }
     outs.push({ r, v: judge(c, r) });
     console.log(`${outs.at(-1).v.ok ? 'PASS' : 'FAIL'}  run ${i + 1}  ${c.input}`);
   }
@@ -71,8 +72,20 @@ for (const c of CASES) {
   const consistent = outs.every((o) => o.r.reply === outs[0].r.reply) ? 'identical'
     : firstLines.every((l) => l === firstLines[0]) ? 'same structure' : 'DIFFERENT';
   rows.push(`| \`${c.input}\` | ${c.mode} | ${c.expect} | ${outs.map((o) => (o.v.ok ? 'PASS' : 'FAIL')).join(' / ')} | ${consistent} | ${outs.flatMap((o) => o.v.fails).join('; ') || '—'} |`);
-  raw.push(`### \`${c.input}\` (default mode: ${c.mode})\n` + outs.map((o, i) =>
-    `Run ${i + 1} — tool calls: ${o.r.toolCalls}, guard: ${o.r.guard.passed ? 'passed' : 'BLOCKED'}\n\`\`\`\n${o.r.reply}\n\`\`\``).join('\n'));
+  raw.push(`### \`${c.input}\` (default mode: ${c.mode})\n` + outs.map((o, i) => runDetail(o.r, i)).join('\n'));
+}
+
+// What the model searched, whether it had to be nudged into a lookup, and,
+// when the guard blocked the reply, what the model actually wrote.
+function runDetail(r, i) {
+  const searches = (r.searches ?? []).map((s) => `"${s.name}" (${s.gameMode}) → ${s.error ?? (s.matches.length ? s.matches.join(' | ') : '0 matches')}`);
+  const lines = [
+    `Run ${i + 1} — tool calls: ${r.toolCalls}, guard: ${r.guard.passed ? 'passed' : 'BLOCKED'}${r.nudged ? ', nudged to look up' : ''}`,
+    ...searches.map((s) => `- search ${s}`),
+    '```', r.reply, '```',
+  ];
+  if (!r.guard.passed && r.raw) lines.push('Blocked model reply:', '```', r.raw, '```');
+  return lines.join('\n');
 }
 
 const md = `# Reliability Test Results

@@ -33,3 +33,27 @@ test('blocks any price when no tool was called (answer from memory)', () => {
 test('allows numbers from the user question and label digits', () => {
   assert.equal(verify('OFF-TASK .... no m4 builds. 24H 7-day', [], 'best m4 build').passed, true);
 });
+
+// Shaped like a real lookupItem() result, where numbers are followed by JSON commas.
+const lookup = JSON.stringify({
+  gameMode: 'regular', query: 'key', source: 'tarkov-market.com', matchCount: 5,
+  matches: [{ name: 'Key tool', fleaAvg24h: '₽ 1,234,567' }, { name: 'Health Resort west wing room 219 key', fleaAvg24h: null }],
+});
+
+test('reads a JSON number followed by a comma as the number (matchCount 5)', () => {
+  assert.equal(verify('MATCHES ..... 5 items match "key"\n  - Key tool', [lookup]).passed, true);
+});
+
+test('keeps thousands separators and item-name digits intact', () => {
+  assert.equal(verify('FLEA AVG 24H  ₽ 1,234,567\n  - Health Resort west wing room 219 key', [lookup]).passed, true);
+});
+
+test('blocks an item name the lookup did not return (suggestion from memory)', () => {
+  const r = verify('DID YOU MEAN  LEDX Skin Transilluminator', [lookup]);
+  assert.equal(r.passed, false);
+  assert.deepEqual(r.unverified, ['name: LEDX Skin Transilluminator']);
+});
+
+test('allows a DID YOU MEAN name the lookup did return', () => {
+  assert.equal(verify('DID YOU MEAN  Key tool\nNOTE ........ No exact match for "kee tool".', [lookup], 'kee tool').passed, true);
+});

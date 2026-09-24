@@ -50,12 +50,15 @@ NOTE ........ Flea prices move hourly; confirm in-game before trading.
 
 Without controls, the model fills the gap with a believable number from its training data. That number is wrong and looks exactly like a real one.
 
+**Seen live** (first reliability run, saved in `tests/reliability_tests/phase_1.md`): asked "LEDX", the model skipped the lookup and replayed the prices from a few-shot example, because the example had used the same item. The guard blocked it. The run also showed the search is fuzzy ("ledz" returns "Can of herring"), so a misspelling could price the wrong item.
+
 **Mitigation (layered):**
-1. **Prompt rules 1, 2, 5, 6, 8, 9:** always call the tool, only copy numbers, and show MATCHES, "not on flea", or ERROR instead of guessing. When the model corrects a misspelling, it shows DID YOU MEAN with a name from the live data and waits for "yes" before showing a price, so a wrong guess never becomes a wrong price.
-2. **Few-shot example 2:** shows ambiguity handled by asking, not picking.
-3. **Server guard:** every number in the reply must match, as a whole token, a number from *this turn's* tool result. Otherwise the reply is replaced with `UNVERIFIED`. It also catches prices copied from the few-shot examples and answers given with no tool call.
+1. **Prompt rules 1, 2, 4–9:** always call the tool (even for an item seen earlier), only copy numbers, search the user's own words first, ignore unrelated fuzzy results, and show MATCHES, "not on flea", or ERROR instead of guessing. When the model corrects a misspelling, it shows DID YOU MEAN with a name from the live data and waits for "yes" before showing a price, so a wrong guess never becomes a wrong price.
+2. **Few-shot examples:** example 2 shows ambiguity handled by asking, not picking. Example 1 uses an item the tests don't ask about, so it can't be replayed as an answer.
+3. **Server nudge:** if the model answers without any lookup (and it isn't OFF-TASK), the server asks it once to look the item up.
+4. **Server guard:** every number in the reply must match, as a whole token, a number from *this turn's* tool result, and every item name shown must be one the lookup returned. Otherwise the reply is replaced with `UNVERIFIED`. It also catches prices copied from the few-shot examples, answers given with no tool call, and suggestions made from memory.
 
 **Demo:** `GUARD=off node server.js` and ask the failing input → the unverified output gets through. Then run `node server.js` → the same input is blocked.
 
 ## Reliability test
-`npm test`: 6 offline guard tests (all pass). `npm run test:reliability`: 6 inputs × 2 runs (price, PvE price, ambiguous, misspelled, flea-banned, off-task). Checks format, tool use, guard, expected behavior, and run-to-run consistency. Results: `TEST-RESULTS.md`.
+`npm test`: 10 offline guard tests (all pass). `npm run test:reliability`: 6 inputs × 2 runs (price, PvE price, ambiguous, misspelled, flea-banned Physical Bitcoin, off-task). Checks format, tool use, guard, expected behavior, and run-to-run consistency. The report lists what each run searched for, and the model's original reply when the guard blocked it. Results: `TEST-RESULTS.md`.

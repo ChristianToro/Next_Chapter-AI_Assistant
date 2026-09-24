@@ -38,10 +38,13 @@ A request passes through three layers. Together they keep the model from inventi
 
    Sonnet 5 rejects `temperature`/`top_p` with a 400, so don't add them. Full `response.content` (including thinking blocks) is pushed back unchanged. All `tool_result` blocks go back in one user message. The client is created lazily in `ask()` so `verify()` can be imported without a key.
 3. **`verify()` guard (the named failure-mode mitigation):**
-   - It pulls every number token out of the reply.
+   - It pulls every number token out of the reply. Tokens are whole numbers with exactly-3-digit thousands groups (`\d+(?:,\d{3})*(?:\.\d+)?`). A looser pattern once swallowed JSON separators (`"matchCount":5,` → `5,`) and blocked every MATCHES reply.
    - Each token must match, as a whole token, a number from **this turn's** tool results or the user's question. `24` and `7` are always allowed because they appear in labels (`FLEA AVG 24H`, `24H TREND`, `7-day avg`).
-   - Any unmatched number replaces the reply with `GUARD_BLOCK` (`UNVERIFIED ...`).
+   - Every item name the reply shows (`ITEM` line, `DID YOU MEAN` line, MATCHES `  - ` bullets) must be a `matches[].name` from this turn's tool results.
+   - Any failure replaces the reply with `GUARD_BLOCK` (`UNVERIFIED ...`).
    - Few-shot example prices are deliberately fake and never count as allowed, so a copied example price also gets blocked.
+
+   Before the guard, `ask()` **nudges** once: a final answer with zero lookups that isn't `OFF-TASK` gets a follow-up user message asking the model to call `lookup_item`. In the first live run the model replayed a few-shot answer with no lookup. `ask()` also returns `searches` (query, mode, and returned names or error) and `nudged`, for the server log and the reliability report.
 
 Coupling to keep in sync when changing things:
 - **Output format labels** (`ITEM ........`, `FLEA AVG 24H`, `MATCHES .....`, `DID YOU MEAN`, `ERROR`, `OFF-TASK`, etc.) are defined in `prompts/system-prompt.md`. They are also hard-coded in `prompts/examples.json` answers, in `tests/reliability.mjs` (`PRICE_LABELS`, `startsWith` checks), and in `public/terminal.js` (the warn-color regex, and the `DID YOU MEAN` regex that captures the suggestion).
@@ -54,5 +57,6 @@ Coupling to keep in sync when changing things:
 
 - `lib/tarkov.js` is tested only against the documented sample response with a stubbed `fetch`, not live.
 - The Claude tool loop has not run live either: no Anthropic key was available when it was written. Only the offline tests and the missing- and invalid-key error paths have been exercised.
-- The reliability test's flea-banned case ("Red Rebel ice pick") is an assumption to confirm.
+- Live results are saved per phase in `tests/reliability_tests/` (e.g. `phase_1.md`). `TEST-RESULTS.md` is overwritten on every run.
+- The flea-banned test case is Physical Bitcoin, confirmed `bannedOnFlea: true` via the API. Red Rebel ice pick is not banned. The Tarkov Market search is fuzzy (`ledz` → Can of herring), which is why prompt rules 4–7 search the user's own words first and ignore unrelated results.
 - The "Why" column in `SPEC.md` is a draft the user must rewrite in their own words (rubric requirement). Don't polish it for them.

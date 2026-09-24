@@ -396,3 +396,53 @@ First live run (Sonnet 5, effort low, 6 inputs × 2): 6 of 12 runs passed. Only 
 **Collaboration**
 
 The user ran the live suite; the review was agent-led. `TEST-RESULTS.md` is untracked, and the next run overwrites it. It's worth keeping as failure-mode evidence (LEDX run 2).
+
+### Interaction 10 — Apply the five reliability fixes
+
+**User Prompt**
+
+> I stored the the results of the test suite into a different folder and file, so next runs can rewrite at will. Apply all 5 fixes.
+
+**Agent Outcome**
+
+The user committed the phase 1 results as `tests/reliability_tests/phase_1.md` (commit `27823ad`). Applied all five fixes from Interaction 9:
+
+1. **Guard regex:** now `\d+(?:,\d{3})*(?:\.\d+)?`, so JSON separators are no longer swallowed. The guard also checks **item names**: every `ITEM`, `DID YOU MEAN` and MATCHES-bullet name must be a `matches[].name` from this turn's lookups. The block message now says "numbers or item names".
+2. **Answers without a lookup:**
+   - Few-shot example 1 moved from LEDX to Tetriz portable game console. The real name came from the API; the prices are fake.
+   - Rule 1 says earlier example turns are illustrations and the item must be looked up again.
+   - `ask()` nudges once when a final answer has zero lookups and isn't OFF-TASK.
+3. **Rules 4–7:** the first search always uses the user's own words. A result counts only if its name or shortName equals or contains the searched words, so unrelated fuzzy results don't count. Corrections come only after no match. DID YOU MEAN / MATCHES / NOT FOUND follow from that.
+4. **Test data:**
+   - Physical Bitcoin replaces Red Rebel ice pick as the `noflea` case (confirmed `bannedOnFlea: true`; exact name among 3 results) and must show `not on flea`.
+   - The MODE line is only judged when a PRICE block exists.
+   - Crashed runs are labeled "run crashed", not "price source down".
+5. **Report:** each run lists its searches (query, mode, returned names or error) and whether it was nudged. A blocked run includes the model's original reply. The server log also prints searches and the nudge.
+
+**Rationale**
+
+- The guard now checks names too, so a suggestion made from memory is blocked in code instead of relying only on the prompt.
+- The nudge fixes the no-lookup case at its cause, before the guard has to block anything. It fires at most once and skips OFF-TASK.
+- Rule numbers 8–11 are unchanged. SPEC now cites rules 1, 2, 4–9.
+
+**Changes**
+
+- `lib/assistant.js`: regex, name check, nudge, `searches` / `nudged` in the result.
+- `tests/guard.test.mjs`: +4 tests (JSON comma, thousands and name digits, unknown name blocked, returned name allowed), 10 total.
+- `prompts/examples.json`: example 1 is now Tetriz.
+- `prompts/system-prompt.md`: rules 1 and 4–7.
+- `tests/reliability.mjs`: Physical Bitcoin case, PRICE-only MODE check, crash label, `runDetail()` report.
+- `server.js`: log line.
+- `SPEC.md`: failure mode "seen live" paragraph, mitigation layers (nudge, name check), 10 tests.
+- `CLAUDE.md`: guard and nudge description, known state.
+
+**Verification**
+
+- `npm test`: 10/10. Both few-shot answers pass the guard against their own tool results.
+- Offline `ask()` run with stubbed Anthropic and Tarkov Market `fetch`: a memory answer triggered one nudge, then one lookup, and the final reply passed the guard. The request had no `temperature`, effort `low`, and a `strict` tool.
+- The reliability report was smoke-tested with a blank model key (all runs "run crashed"). `TEST-RESULTS.md` was then restored from git.
+- **Not verified live:** the next `npm run test:reliability` will show whether Sonnet 5 follows the new rules 4–7.
+
+**Collaboration**
+
+The user approved all five fixes and archived the phase 1 evidence themselves before re-running.

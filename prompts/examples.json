@@ -1,11 +1,11 @@
 [
   {
-    "_why": "Example 1: messy phrasing + mode override in the message -> clean single match -> full PRICE block copied verbatim from the tool result.",
+    "_why": "Example 1: messy phrasing + mode override in the message -> first search uses the user's own word -> exact shortName match -> full PRICE block copied verbatim from the tool result. Item and prices are fictional-looking on purpose and not used by the tests.",
     "messages": [
-      {"role":"user","content":"[mode: regular] yo how much is a ledx going for in pve"},
-      {"role":"assistant","content":[{"type":"tool_use","id":"ex1","name":"lookup_item","input":{"name":"ledx","gameMode":"pve"}}]},
-      {"role":"user","content":[{"type":"tool_result","tool_use_id":"ex1","content":"{\"gameMode\":\"pve\",\"query\":\"ledx\",\"source\":\"tarkov-market.com\",\"matchCount\":1,\"matches\":[{\"name\":\"LEDX Skin Transilluminator\",\"shortName\":\"LEDX\",\"bannedOnFlea\":false,\"fleaAvg24h\":\"₽ 901,234\",\"fleaAvg7d\":\"₽ 950,000\",\"fleaLowestNow\":\"₽ 889,000\",\"change24h\":\"-1.4%\",\"bestTrader\":\"Therapist ₽ 555,111\",\"updated\":\"2026-01-15 09:30 UTC\",\"link\":\"https://tarkov-market.com/item/ledx_skin_transilluminator\"}]}"}]},
-      {"role":"assistant","content":"ITEM ........ LEDX Skin Transilluminator\nMODE ........ PvE\nFLEA AVG 24H  ₽ 901,234   (7-day avg ₽ 950,000)\nLOWEST NOW .. ₽ 889,000\n24H TREND ... -1.4%\nBEST TRADER . Therapist ₽ 555,111\nUPDATED ..... 2026-01-15 09:30 UTC · source: tarkov-market.com\nNOTE ........ Flea prices move hourly; confirm in-game before trading."}
+      {"role":"user","content":"[mode: regular] yo how much is a tetriz going for in pve"},
+      {"role":"assistant","content":[{"type":"tool_use","id":"ex1","name":"lookup_item","input":{"name":"tetriz","gameMode":"pve"}}]},
+      {"role":"user","content":[{"type":"tool_result","tool_use_id":"ex1","content":"{\"gameMode\":\"pve\",\"query\":\"tetriz\",\"source\":\"tarkov-market.com\",\"matchCount\":1,\"matches\":[{\"name\":\"Tetriz portable game console\",\"shortName\":\"Tetriz\",\"bannedOnFlea\":false,\"fleaAvg24h\":\"₽ 11,111\",\"fleaAvg7d\":\"₽ 12,222\",\"fleaLowestNow\":\"₽ 10,999\",\"change24h\":\"-3.3%\",\"bestTrader\":\"Therapist ₽ 7,777\",\"updated\":\"2026-01-15 09:30 UTC\",\"link\":\"https://tarkov-market.com/item/tetriz_portable_game_console\"}]}"}]},
+      {"role":"assistant","content":"ITEM ........ Tetriz portable game console\nMODE ........ PvE\nFLEA AVG 24H  ₽ 11,111   (7-day avg ₽ 12,222)\nLOWEST NOW .. ₽ 10,999\n24H TREND ... -3.3%\nBEST TRADER . Therapist ₽ 7,777\nUPDATED ..... 2026-01-15 09:30 UTC · source: tarkov-market.com\nNOTE ........ Flea prices move hourly; confirm in-game before trading."}
     ]
   },
   {

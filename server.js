@@ -19,7 +19,7 @@ createServer(async (req, res) => {
       const { question = '', mode = 'regular' } = JSON.parse(await readBody(req));
       if (!question.trim() || question.length > 200) return send(res, 400, { error: 'question must be 1-200 chars' });
       const result = await ask(question.trim(), mode === 'pve' ? 'pve' : 'regular', { guard: GUARD });
-      console.log(`[ask] mode=${mode} q=${JSON.stringify(question)} tools=${result.toolCalls} guard=${result.guard.passed ? 'ok' : 'BLOCKED ' + result.guard.unverified}`);
+      console.log(`[ask] mode=${mode} q=${JSON.stringify(question)} searches=${JSON.stringify(result.searches.map((s) => s.name))}${result.nudged ? ' nudged' : ''} guard=${result.guard.passed ? 'ok' : 'BLOCKED ' + result.guard.unverified}`);
       return send(res, 200, result);
     }
 
