@@ -29,7 +29,7 @@ Always use the output structure below.
 | Few-shot (2) | Clean match with a mode override, and an ambiguous name with a MATCHES list | Example 1 shows both steps (call the tool, then fill the format). Example 2 shows the harder case: don't pick one, ask. |
 | Output structure | Dot-padded `LABEL ....... value` block: PRICE / MATCHES / DID YOU MEAN / NOT FOUND / ERROR / OFF-TASK | Same shape every time, so it's easy to scan, easy to test with code, and it fits the terminal look. |
 | Model | Claude Sonnet 5 (`claude-sonnet-5`), effort `low`, no sampling params | Strong at tool use and following formats, at a lower price than Opus. Effort `low` fits a simple look-up-and-copy task. Sonnet 5 doesn't allow `temperature`, so consistency comes from the strict prompt, the examples, the pre-formatted numbers and the guard, and the reliability test measures it. |
-| Guard | `verify()` in `lib/assistant.js` | See Failure mode. |
+| Guard | `verify()` and `validateFormat()` in `lib/gaurd.js` | See Failure mode. |
 | Terminal UI | Plain HTML/CSS/JS, output rendered as `textContent` | Light, and model output can never inject HTML. |
 
 ## Output structure
