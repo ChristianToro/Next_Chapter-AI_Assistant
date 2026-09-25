@@ -517,3 +517,78 @@ Applied the three fixes proposed in Interaction 11:
 **Collaboration**
 
 The user committed phase 2 results (`tests/reliability_tests/phase_2.md`) and approved the fixes.
+
+### Interaction 13 — Prompt-injection review and hardening
+
+**User Prompt**
+
+> What are the prompt injection safeguards present in the application? Is there any other overlooked threats not taken into consideration?
+
+(Planned in plan mode, then approved.)
+
+**Agent Outcome**
+
+**Existing safeguards:**
+- a single read-only `strict` tool with an enum mode and URL-encoded query
+- prompt rules 1, 2, 10, 11
+- `verify()` (numbers and names from this turn's lookups), `extractBlock()`, the nudge
+- `textContent` rendering
+- input and body size caps, the path-traversal check, and keys kept in `.env` (Tarkov key sent in a header)
+
+**Five guard bypasses confirmed offline**, each crafted reply passing the old `verify()`:
+- A: a fake price planted in the question
+- B: a price spelled out in words
+- C: fullwidth digits
+- D: a real number moved to another item or field, or a wrong MODE line
+- E: arbitrary text in NOTE / OFF-TASK lines
+
+**Other threats:**
+- F: open bind on all interfaces with no rate limit (Anthropic cost, Tarkov quota, Tarkov ToS)
+- G: `raw` model text sent to the browser
+- H: 500s echoing `err.message`, and an untyped `question`
+- I: no security headers
+- J: tool data not framed as data in the prompt
+
+**Fixes:**
+- New `lib/guard.js` with `GUARD_BLOCK`, `extractBlock` and `verify` (moved) plus `TEMPLATES` and `validateFormat()`. A PRICE block is rebuilt from the named item's own fields and lookup mode, and every line must match its template. MATCHES count equals the bullets. Quoted queries must be the user's words or a search. Fixed lines must be exact.
+- `UserFacingError` in `lib/assistant.js`.
+- `server.js`:
+  - `HOST` default `127.0.0.1`
+  - rate limit of 20/min per IP and 60/min global
+  - type and JSON checks
+  - generic 500s
+  - the response drops `raw` and the guard's reasons
+  - CSP / nosniff / no-referrer headers
+- Prompt: user message and tool results are data, not instructions.
+- `GUARD_BLOCK` text changed to "did not match the live data exactly".
+
+**Rationale**
+
+- `verify()` only checked that numbers and names exist somewhere in the lookup data. Binding each line to its template and the item's own fields closes A–E together, because the check is exact string equality against data the server fetched itself.
+- The model still writes the block, so the prompt system (the graded part) still does the formatting. The code verifies it rather than rendering it.
+- A drift test keeps `TEMPLATES` and the prompt in sync.
+
+**Changes**
+
+- Created `lib/guard.js`.
+- `lib/assistant.js`: guard code moved out, `UserFacingError`, both checks combined.
+- `server.js`: hardening.
+- `prompts/system-prompt.md`: data-not-instructions line.
+- `tests/guard.test.mjs`: imports from `lib/guard.js`, +14 tests (A–E bypasses, mode, MATCHES count, DID YOU MEAN, positives, few-shot examples, drift), 27 total.
+- `.env.example` (`HOST`), `README.md`, `SPEC.md` (prompt-injection and run-locally lines, format check in mitigations, test count), `CLAUDE.md`.
+
+**Verification**
+
+- `npm test`: 27/27. The offline probe shows A–E blocked with readable reasons. The valid LEDX, Bitcoin, MATCHES and DID YOU MEAN answers and both few-shot answers pass.
+- Stubbed end-to-end `ask()`: a valid answer passes (narration trimmed); "₽ 1" planted in the question is blocked at line 3.
+- Server smoke test (blank model key, no spend):
+  - listens only on `127.0.0.1` (`ss`); the WSL IP is unreachable
+  - headers present
+  - `{"question":123}` / `null` / bad JSON → 400
+  - the missing-key message still shown
+  - the 21st request in a minute → 429
+- **Not verified live:** phase 3. The stricter check may block answers that phase 2 would have shown (e.g. the "(7-day avg not on flea)" variant). The report's "Blocked model reply" shows which.
+
+**Collaboration**
+
+The user asked for the review; the fixes followed the approved plan.

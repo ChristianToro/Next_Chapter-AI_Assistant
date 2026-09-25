@@ -1,10 +1,24 @@
 # Spec Sheet: Tarkov Price Terminal
 
-> ✏️ The "Why" lines below are drafts. Rewrite them in your own words before you submit (rubric: *explain every design choice in your own words*).
+> *No risk, no loot.*
 
 **Task (one only):** Tell a player the current market value of one Escape From Tarkov item.
 **User:** An EFT player mid-raid-prep who wants to know "is this worth selling / keeping?" without opening a wiki.
 **Out of scope:** Builds, quests, maps, ammo charts, trading advice, and anything that isn't an item price. These get a one-line OFF-TASK reply.
+
+## System prompt (role + rules)
+See [System Prompt](./prompts/system-prompt.md) document.
+
+**Role**: Tarkov flea-market price clerk. Answers only "what is item X worth right now".
+
+**Rules:**
+- Always call lookup_item before stating a price.
+- Never state a number that isn't in the tool result.
+- If there are several matches, list up to 5 names and ask the user to pick one. Don't guess.
+- If avg24hPrice is null (flea-banned or not tradeable), say so and show only trader sell prices.
+Refuse off-task requests (builds, quests, cheats, RMT) with one line.
+Don't give buy/sell advice beyond "best place to sell" from the data.
+Always use the output structure below.
 
 ## Build
 | Part | What | Why |
@@ -36,6 +50,11 @@ NOTE ........ Flea prices move hourly; confirm in-game before trading.
 - **Bias and staleness:**
   - Tarkov Market prices come from its flea-market scanner. Low-volume items can be skewed by a few listings, and a price is only as fresh as the last scan (check `UPDATED`).
   - The default is PvP. PvE economies differ a lot, so check the MODE line.
+- **Prompt injection:**
+  - The model has one read-only tool, so injected text can't make the app *do* anything.
+  - Text in the user's message or in lookup results is treated as data (prompt).
+  - The server check shows only answers whose every line matches the live data and the fixed templates. Tested against fake prices in the question, spelled-out and fullwidth numbers, numbers moved between items, and injected NOTE text.
+- **Run locally:** the server binds to 127.0.0.1 and rate-limits questions (20/min per client, 60/min total). Tarkov Market's key is for personal use, so don't expose the server publicly.
 - **How to verify:**
   1. Check the `UPDATED` time.
   2. Check that `ITEM` is the item you meant.
@@ -57,9 +76,9 @@ Without controls, the model fills the gap with a believable number from its trai
 2. **Few-shot examples:** example 2 shows ambiguity handled by asking, not picking. Example 1 uses an item the tests don't ask about, so it can't be replayed as an answer.
 3. **Server nudge:** if the model answers without any lookup (and it isn't OFF-TASK), the server asks it once to look the item up.
 4. **Server trim:** only the format block reaches the user. Narration the model adds around it is dropped (seen live in phase 2).
-5. **Server guard:** every number in the reply must match, as a whole token, a number from *this turn's* tool result, and every item name shown must be one the lookup returned. Otherwise the reply is replaced with `UNVERIFIED`. It also catches prices copied from the few-shot examples, answers given with no tool call, and suggestions made from memory.
+5. **Server guard:** every number in the reply must match, as a whole token, a number from *this turn's* tool result, and every item name shown must be one the lookup returned. A **field-bound format check** then rebuilds the expected block from the looked-up item's own data. Every line must match its template, so a price can't be spelled out, written in other digits, taken from another item or field, or surrounded by extra text. Otherwise the reply is replaced with `UNVERIFIED`. It also catches prices copied from the few-shot examples, answers given with no tool call, and suggestions made from memory.
 
 **Demo:** `GUARD=off node server.js` and ask the failing input → the unverified output gets through. Then run `node server.js` → the same input is blocked.
 
 ## Reliability test
-`npm test`: 13 offline tests of the guard and the trim (all pass). `npm run test:reliability`: 6 inputs × 2 runs (price, PvE price, ambiguous, misspelled, flea-banned Physical Bitcoin, off-task). Checks that every reply starts with a format label, plus tool use, guard, expected behavior (exact "not on flea" lines for the banned item), and run-to-run consistency. Phase 1 passed 6/12. Phase 2 passed 12/12, but its consistency check exposed narration and an uneven "not on flea" line, which led to the trim and a stricter rule 8. The report lists what each run searched for, and the model's original reply when the guard blocked it. Results: `TEST-RESULTS.md`.
+`npm test`: 27 offline tests of the guard, the trim, the format check (including the injection bypasses) and prompt/template drift (all pass). `npm run test:reliability`: 6 inputs × 2 runs (price, PvE price, ambiguous, misspelled, flea-banned Physical Bitcoin, off-task). Checks that every reply starts with a format label, plus tool use, guard, expected behavior (exact "not on flea" lines for the banned item), and run-to-run consistency. Phase 1 passed 6/12. Phase 2 passed 12/12, but its consistency check exposed narration and an uneven "not on flea" line, which led to the trim and a stricter rule 8. The report lists what each run searched for, and the model's original reply when the guard blocked it. Most recent test suite results: [`TEST-RESULTS.md`.](./TEST-RESULTS.md) Catalog of suite results: [Reliability Tests.](./tests/reliability_tests/)

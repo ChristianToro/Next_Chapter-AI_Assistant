@@ -7,7 +7,7 @@ A one-task AI assistant: type an Escape From Tarkov item, get its current market
 npm install                 # one dependency: @anthropic-ai/sdk
 cp .env.example .env        # add ANTHROPIC_API_KEY and TARKOV_MARKET_API_KEY
 node server.js              # Node 21.7+
-# open http://localhost:3000
+# open http://127.0.0.1:3000 (local only; see HOST in .env.example)
 ```
 In the terminal: `ledx`, `gpu pve`, `mode pve`, `help`, `clear`.
 
