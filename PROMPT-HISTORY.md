@@ -474,3 +474,46 @@ Awaiting user approval; no code changed.
 **Verification**
 
 Read `TEST-RESULTS.md` (searches, per-run outputs, Physical Bitcoin raw blocks).
+
+### Interaction 12 — Trim narration, exact "not on flea", stricter tests
+
+**User Prompt**
+
+> the results were saved and committed, make the changes
+
+**Agent Outcome**
+
+Applied the three fixes proposed in Interaction 11:
+
+1. **Server trim:** `extractBlock()` in `lib/assistant.js` keeps only the format block, from the first line starting with a format label through the first `NOTE ........` line. The guard, the nudge's OFF-TASK check and the reply all use the trimmed block. `raw` stays untrimmed, and `trimmed` is returned.
+2. **Rule 8** shows the three literal `not on flea` lines with "no 7-day part". The null-field note under PRICE points to rule 8.
+3. **Reliability test:**
+   - every reply must start with a format label
+   - the banned-item case must contain the three exact lines (regex)
+   - trimmed narration appears as a non-failing note in the table, and the pre-trim reply is shown in the raw section
+
+**Rationale**
+
+- Phase 2 showed the prompt alone doesn't stop narration, so the fix is in code, like the guard.
+- Trimmed narration isn't counted as a failure, because the user never sees it. It's still reported, so the prompt's compliance stays visible.
+- Every format already ends with a NOTE line, which gives a clean end marker.
+
+**Changes**
+
+- `lib/assistant.js`: `BLOCK_START`, `extractBlock()`, trimmed block used for guard and reply.
+- `prompts/system-prompt.md`: rule 8 and the PRICE null note.
+- `tests/reliability.mjs`: `BLOCK_START`, `NO_FLEA`, notes column, pre-trim output.
+- `tests/guard.test.mjs`: +3 `extractBlock` tests (13 total). The header comment no longer suggests `node --test tests/`.
+- `CLAUDE.md`, `SPEC.md` (trim layer, test counts, phase 1 → phase 2 story).
+
+**Verification**
+
+- `npm test`: 13/13.
+- The `NO_FLEA` regex accepts phase 2 run 1 and rejects run 2 (`(7-day avg not on flea)`).
+- `extractBlock` tested on the real phase 2 narration.
+- Report smoke-tested with a blank model key, then `TEST-RESULTS.md` restored.
+- **Not verified live:** phase 3 run pending.
+
+**Collaboration**
+
+The user committed phase 2 results (`tests/reliability_tests/phase_2.md`) and approved the fixes.

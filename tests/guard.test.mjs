@@ -1,9 +1,9 @@
 // Offline unit test for the anti-hallucination guard. No API keys needed.
-// Run: node --test tests/
+// Run: npm test
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { verify } from '../lib/assistant.js';
+import { verify, extractBlock } from '../lib/assistant.js';
 
 const tool = JSON.stringify({ matches: [{ fleaAvg24h: '₽ 412,300', change24h: '+2.1%', updated: '2026-09-24 14:02 UTC' }] });
 
@@ -56,4 +56,20 @@ test('blocks an item name the lookup did not return (suggestion from memory)', (
 
 test('allows a DID YOU MEAN name the lookup did return', () => {
   assert.equal(verify('DID YOU MEAN  Key tool\nNOTE ........ No exact match for "kee tool".', [lookup], 'kee tool').passed, true);
+});
+
+// extractBlock(): the server keeps only the format block the user should see.
+
+test('drops narration before and after the format block (phase 2 Physical Bitcoin)', () => {
+  const raw = 'Exact match found on "Physical Bitcoin".\n\nITEM ........ Physical Bitcoin\nMODE ........ PvP\nNOTE ........ Flea prices move hourly; confirm in-game before trading.\n\nLet me know if you need more!';
+  assert.equal(extractBlock(raw), 'ITEM ........ Physical Bitcoin\nMODE ........ PvP\nNOTE ........ Flea prices move hourly; confirm in-game before trading.');
+});
+
+test('keeps MATCHES bullets between the label and NOTE', () => {
+  const block = 'MATCHES ..... 2 items match "key"\n  - Key tool\n  - Kiba Arms outer door key\nNOTE ........ Type the full item name to get its price.';
+  assert.equal(extractBlock(`Here are the matches:\n${block}`), block);
+});
+
+test('leaves text with no format label unchanged, so the guard and tests still see it', () => {
+  assert.equal(extractBlock('I think LEDX is worth about 500k'), 'I think LEDX is worth about 500k');
 });

@@ -44,7 +44,9 @@ A request passes through three layers. Together they keep the model from inventi
    - Any failure replaces the reply with `GUARD_BLOCK` (`UNVERIFIED ...`).
    - Few-shot example prices are deliberately fake and never count as allowed, so a copied example price also gets blocked.
 
-   Before the guard, `ask()` **nudges** once: a final answer with zero lookups that isn't `OFF-TASK` gets a follow-up user message asking the model to call `lookup_item`. In the first live run the model replayed a few-shot answer with no lookup. `ask()` also returns `searches` (query, mode, and returned names or error) and `nudged`, for the server log and the reliability report.
+   Before the guard, `extractBlock()` keeps only the format block: from the first line starting with a format label through the first `NOTE ........` line. Sonnet 5 sometimes narrates ("Exact match found …") despite rule 11. The guard checks the trimmed block, which is what the user sees. `trimmed: true` is returned when narration was dropped, and the report notes it. A new format must start with a label listed in `BLOCK_START` (in both `lib/assistant.js` and `tests/reliability.mjs`) and end with a NOTE line.
+
+   `ask()` also **nudges** once: a final answer with zero lookups that isn't `OFF-TASK` gets a follow-up user message asking the model to call `lookup_item`. In the first live run the model replayed a few-shot answer with no lookup. `ask()` also returns `searches` (query, mode, and returned names or error) and `nudged`, for the server log and the reliability report.
 
 Coupling to keep in sync when changing things:
 - **Output format labels** (`ITEM ........`, `FLEA AVG 24H`, `MATCHES .....`, `DID YOU MEAN`, `ERROR`, `OFF-TASK`, etc.) are defined in `prompts/system-prompt.md`. They are also hard-coded in `prompts/examples.json` answers, in `tests/reliability.mjs` (`PRICE_LABELS`, `startsWith` checks), and in `public/terminal.js` (the warn-color regex, and the `DID YOU MEAN` regex that captures the suggestion).
