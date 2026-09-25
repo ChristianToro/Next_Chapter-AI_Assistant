@@ -446,3 +446,31 @@ The user committed the phase 1 results as `tests/reliability_tests/phase_1.md` (
 **Collaboration**
 
 The user approved all five fixes and archived the phase 1 evidence themselves before re-running.
+
+### Interaction 11 — Review of the phase 2 live run
+
+**User Prompt**
+
+> Results are in from npm run test:reliability with all passing.
+
+**Agent Outcome**
+
+Phase 2 (saved by the user as `tests/reliability_tests/phase_2.md`): 12/12 PASS, no nudges needed, no guard blocks. The search log confirms the Interaction 10 fixes:
+- `ledz` → "ledz" (Can of herring, ignored) → "ledx" → DID YOU MEAN
+- `gpu` searched as typed → PRICE via exact shortName
+- `key` → MATCHES 5 (the guard comma fix works)
+
+Two defects the checks didn't catch, both surfaced by the Physical Bitcoin "DIFFERENT" consistency flag:
+1. **Preamble before the block.** Both runs started with "Exact match found …" before `ITEM ........`, which breaks rule 11. The test finds labels anywhere and doesn't require the reply to start with one.
+2. **Rule 8 applied inconsistently.** Run 2 wrote `FLEA AVG 24H  not on flea   (7-day avg not on flea)`. The test's `includes()` check accepts both versions.
+
+Proposed:
+- a server-side trim of lines before the first format label
+- rule 8 showing the literal line
+- tests requiring the reply to start with a label and matching the not-on-flea line exactly
+
+Awaiting user approval; no code changed.
+
+**Verification**
+
+Read `TEST-RESULTS.md` (searches, per-run outputs, Physical Bitcoin raw blocks).
